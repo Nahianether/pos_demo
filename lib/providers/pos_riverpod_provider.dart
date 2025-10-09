@@ -90,6 +90,11 @@ class ProductsNotifier extends StateNotifier<List<ProductHive>> {
       product.isAvailable
     ).toList();
   }
+
+  Future<void> addProduct(ProductHive product) async {
+    await DatabaseService.getProductsBox().put(product.id, product);
+    state = [...state, product];
+  }
 }
 
 // Cart Provider

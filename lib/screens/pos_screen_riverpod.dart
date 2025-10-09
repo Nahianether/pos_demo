@@ -7,6 +7,7 @@ import '../widgets/category_grid_riverpod.dart';
 import '../widgets/product_grid_riverpod.dart';
 import '../widgets/cart_panel_riverpod.dart';
 import '../widgets/category_breadcrumb_riverpod.dart';
+import '../widgets/add_product_dialog.dart';
 
 class POSScreenRiverpod extends ConsumerStatefulWidget {
   const POSScreenRiverpod({super.key});
@@ -130,6 +131,8 @@ class _POSScreenRiverpodState extends ConsumerState<POSScreenRiverpod> {
               const SizedBox(width: 8),
               _buildThemeToggleButton(),
               const SizedBox(width: 8),
+              _buildAddProductButton(),
+              const SizedBox(width: 8),
               _buildSearchBar(),
               const SizedBox(width: 16),
               _buildIconButton(Icons.settings, () {}),
@@ -181,6 +184,28 @@ class _POSScreenRiverpodState extends ConsumerState<POSScreenRiverpod> {
           isDark ? Icons.light_mode : Icons.dark_mode,
           color: AppTheme.darkPrimary,
         ),
+      ),
+    );
+  }
+
+  Widget _buildAddProductButton() {
+    return InkWell(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => const AddProductDialog(),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 45,
+        height: 45,
+        decoration: BoxDecoration(
+          color: const Color(0xFF3498DB).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF3498DB).withValues(alpha: 0.3)),
+        ),
+        child: const Icon(Icons.add_circle_outline, color: Color(0xFF3498DB)),
       ),
     );
   }
