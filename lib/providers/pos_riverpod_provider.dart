@@ -195,13 +195,13 @@ final searchResultsProvider = Provider.family<List<ProductHive>, String>((ref, q
 });
 
 final cartTotalProvider = Provider<double>((ref) {
-  final cartNotifier = ref.watch(cartProvider.notifier);
-  return cartNotifier.cartTotal;
+  final cartItems = ref.watch(cartProvider);
+  return cartItems.fold(0.0, (sum, item) => sum + item.totalPrice);
 });
 
 final cartItemsCountProvider = Provider<int>((ref) {
-  final cartNotifier = ref.watch(cartProvider.notifier);
-  return cartNotifier.cartItemsCount;
+  final cartItems = ref.watch(cartProvider);
+  return cartItems.fold(0, (sum, item) => sum + item.quantity);
 });
 
 // Loading state provider

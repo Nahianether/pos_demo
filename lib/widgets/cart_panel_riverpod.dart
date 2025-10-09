@@ -15,7 +15,9 @@ class CartPanelRiverpod extends ConsumerWidget {
     return Column(
       children: [
         _buildHeader(ref),
-        Expanded(child: _buildCartItems(ref)),
+        Expanded(
+          child: _buildCartItems(ref),
+        ),
         _buildFooter(context, ref),
       ],
     );
@@ -80,28 +82,31 @@ class CartPanelRiverpod extends ConsumerWidget {
 
     if (cartItems.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.shopping_cart_outlined, size: 80, color: Colors.grey[300]),
-            const SizedBox(height: 16),
-            Text(
-              'Cart is empty',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey[300]),
+              const SizedBox(height: 12),
+              Text(
+                'Cart is empty',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Add items to get started',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[400],
+              const SizedBox(height: 6),
+              Text(
+                'Add items to get started',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[400],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }

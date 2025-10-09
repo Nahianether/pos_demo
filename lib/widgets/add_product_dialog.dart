@@ -36,6 +36,7 @@ class _AddProductDialogState extends ConsumerState<AddProductDialog> {
   Widget build(BuildContext context) {
     final isDark = ref.watch(isDarkModeProvider);
     final categories = ref.watch(categoriesProvider);
+    final keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
 
     // Get leaf categories (categories with no subcategories)
     final leafCategories = categories.where((cat) {
@@ -47,13 +48,21 @@ class _AddProductDialogState extends ConsumerState<AddProductDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
+      insetPadding: EdgeInsets.only(
+        left: 40,
+        right: 40,
+        top: 24,
+        bottom: 24 + keyboardPadding,
+      ),
       child: Container(
         width: 600,
-        constraints: const BoxConstraints(maxHeight: 700),
-        padding: const EdgeInsets.all(24),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height - 48 - keyboardPadding,
+        ),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,

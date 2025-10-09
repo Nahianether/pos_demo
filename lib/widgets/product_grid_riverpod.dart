@@ -124,18 +124,18 @@ class _ProductCardState extends ConsumerState<_ProductCard> {
                 child: widget.product.imageUrl != null
                     ? CachedNetworkImage(
                         imageUrl: widget.product.imageUrl!,
-                        height: 140,
+                        height: 110,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
-                          height: 140,
+                          height: 110,
                           color: Colors.grey[200],
                           child: const Center(
                             child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         ),
                         errorWidget: (context, url, error) => Container(
-                          height: 140,
+                          height: 110,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
@@ -156,7 +156,7 @@ class _ProductCardState extends ConsumerState<_ProductCard> {
                         ),
                       )
                     : Container(
-                        height: 140,
+                        height: 110,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
@@ -170,7 +170,7 @@ class _ProductCardState extends ConsumerState<_ProductCard> {
                         child: Center(
                           child: Icon(
                             Icons.restaurant,
-                            size: 48,
+                            size: 40,
                             color: Colors.grey[400],
                           ),
                         ),
@@ -180,66 +180,77 @@ class _ProductCardState extends ConsumerState<_ProductCard> {
               // Product Info
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        widget.product.name,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2C3E50),
+                      Flexible(
+                        child: Text(
+                          widget.product.name,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2C3E50),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                       if (widget.product.description != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.product.description!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                        const SizedBox(height: 2),
+                        Flexible(
+                          child: Text(
+                            widget.product.description!,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                       const Spacer(),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                currencyFormat.format(widget.product.price),
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF27AE60),
-                                ),
-                              ),
-                              if (widget.product.unit != null)
+                          Flexible(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
                                 Text(
-                                  widget.product.unit!,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey[500],
+                                  currencyFormat.format(widget.product.price),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF27AE60),
                                   ),
                                 ),
-                            ],
+                                if (widget.product.unit != null)
+                                  Text(
+                                    widget.product.unit!,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey[500],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                              ],
+                            ),
                           ),
                           Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
                               color: const Color(0xFF3498DB),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
                               Icons.add_shopping_cart,
-                              size: 20,
+                              size: 18,
                               color: Colors.white,
                             ),
                           ),
