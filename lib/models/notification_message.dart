@@ -44,7 +44,7 @@ class NotificationMessage {
       case NotificationType.info:
         return Icons.info_outline;
       case NotificationType.warning:
-        return Icons.warning_outline;
+        return Icons.warning_amber_outlined;
     }
   }
 }

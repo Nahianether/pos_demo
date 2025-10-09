@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../providers/pos_riverpod_provider.dart';
+import '../providers/settings_provider.dart';
+import '../widgets/modern_notification.dart';
 
 enum PaymentMethod { cash, card, digital }
 
@@ -15,12 +17,11 @@ class CheckoutDialogRiverpod extends ConsumerStatefulWidget {
 class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod> {
   PaymentMethod _selectedPaymentMethod = PaymentMethod.cash;
   final TextEditingController _customerNameController = TextEditingController();
-  final TextEditingController _discountController = TextEditingController();
+  bool _isFriendBill = false;
 
   @override
   void dispose() {
     _customerNameController.dispose();
-    _discountController.dispose();
     super.dispose();
   }
 
@@ -59,9 +60,9 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
             const Divider(height: 24),
             _buildCustomerNameField(),
             const SizedBox(height: 16),
-            _buildPaymentMethodSelector(),
+            _buildFriendBillOption(),
             const SizedBox(height: 16),
-            _buildDiscountField(),
+            _buildPaymentMethodSelector(),
             const SizedBox(height: 20),
             _buildOrderSummary(),
             const SizedBox(height: 24),
@@ -155,30 +156,71 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
     );
   }
 
-  Widget _buildDiscountField() {
-    return TextField(
-      controller: _discountController,
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        labelText: 'Discount Amount',
-        prefixIcon: const Icon(Icons.discount_outlined),
-        prefixText: '\$ ',
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+  Widget _buildFriendBillOption() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _isFriendBill ? const Color(0xFF27AE60) : const Color(0xFFE0E0E0),
+          width: _isFriendBill ? 2 : 1,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF3498DB), width: 2),
-        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _isFriendBill ? Icons.favorite : Icons.favorite_border,
+            color: _isFriendBill ? const Color(0xFF27AE60) : const Color(0xFF95A5A6),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Friend Bill',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: _isFriendBill ? const Color(0xFF27AE60) : const Color(0xFF2C3E50),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _isFriendBill
+                    ? 'Bill will be rounded to nearest whole number'
+                    : 'Apply friend discount and round total',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _isFriendBill,
+            onChanged: (value) => setState(() => _isFriendBill = value),
+            activeColor: const Color(0xFF27AE60),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildOrderSummary() {
-    final cartTotal = ref.watch(cartTotalProvider);
+    final subtotal = ref.watch(cartSubtotalProvider);
+    final vat = ref.watch(cartVatProvider);
+    final discount = ref.watch(cartDiscountProvider);
+    final settings = ref.watch(settingsProvider);
     final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
-    final discount = double.tryParse(_discountController.text) ?? 0.0;
-    final total = cartTotal - discount;
+
+    // Calculate total with friend bill logic
+    double total = settings.calculateTotal(subtotal);
+    if (_isFriendBill) {
+      total = total.roundToDouble();
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -188,9 +230,29 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
       ),
       child: Column(
         children: [
-          _buildSummaryRow('Subtotal', currencyFormat.format(cartTotal)),
+          _buildSummaryRow('Subtotal', currencyFormat.format(subtotal)),
           const SizedBox(height: 8),
-          _buildSummaryRow('Discount', '- ${currencyFormat.format(discount)}'),
+          if (vat > 0) ...[
+            _buildSummaryRow('VAT (${settings.vatPercentage.toStringAsFixed(1)}%)', currencyFormat.format(vat)),
+            const SizedBox(height: 8),
+          ],
+          if (discount > 0) ...[
+            _buildSummaryRow(
+              settings.isDiscountPercentage
+                ? 'Discount (${settings.discountPercentage.toStringAsFixed(1)}%)'
+                : 'Discount',
+              '- ${currencyFormat.format(discount)}'
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (_isFriendBill) ...[
+            _buildSummaryRow(
+              'Round Off Adjustment',
+              currencyFormat.format(total - settings.calculateTotal(subtotal)),
+              color: const Color(0xFF27AE60),
+            ),
+            const SizedBox(height: 8),
+          ],
           const Divider(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -218,7 +280,7 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
     );
   }
 
-  Widget _buildSummaryRow(String label, String value) {
+  Widget _buildSummaryRow(String label, String value, {Color? color}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -231,10 +293,10 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF2C3E50),
+            color: color ?? const Color(0xFF2C3E50),
           ),
         ),
       ],
@@ -267,10 +329,15 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
   }
 
   void _completeOrder() async {
-    final cartTotal = ref.read(cartTotalProvider);
+    final subtotal = ref.read(cartSubtotalProvider);
     final cartItems = ref.read(cartProvider);
-    final discount = double.tryParse(_discountController.text) ?? 0.0;
-    final total = cartTotal - discount;
+    final settings = ref.read(settingsProvider);
+
+    // Calculate total with friend bill logic
+    double total = settings.calculateTotal(subtotal);
+    if (_isFriendBill) {
+      total = total.roundToDouble();
+    }
 
     // Clear the cart
     await ref.read(cartProvider.notifier).clearCart();
@@ -278,6 +345,9 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
     if (!mounted) return;
 
     Navigator.pop(context);
+
+    // Show success notification instead of dialog
+    NotificationHelpers.showCheckoutSuccess(ref);
     _showSuccessDialog(total, cartItems.length);
   }
 

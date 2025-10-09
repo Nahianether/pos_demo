@@ -4,6 +4,7 @@ import '../models/product_hive.dart';
 import '../models/cart_item_hive.dart';
 import '../services/database_service.dart';
 import '../data/realistic_data.dart';
+import 'settings_provider.dart';
 
 // Categories Provider
 final categoriesProvider = StateNotifierProvider<CategoriesNotifier, List<CategoryHive>>((ref) {
@@ -194,9 +195,9 @@ final searchResultsProvider = Provider.family<List<ProductHive>, String>((ref, q
   return productsNotifier.searchProducts(query);
 });
 
+// Basic cart calculations (for backward compatibility)
 final cartTotalProvider = Provider<double>((ref) {
-  final cartItems = ref.watch(cartProvider);
-  return cartItems.fold(0.0, (sum, item) => sum + item.totalPrice);
+  return ref.watch(cartFinalTotalProvider);
 });
 
 final cartItemsCountProvider = Provider<int>((ref) {

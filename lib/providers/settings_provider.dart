@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/settings_hive.dart';
 import '../services/database_service.dart';
+import 'pos_riverpod_provider.dart';
 
 // Settings Provider
 final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsHive>((ref) {
@@ -8,15 +9,20 @@ final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsHive>((
 });
 
 class SettingsNotifier extends StateNotifier<SettingsHive> {
-  SettingsNotifier() : super(SettingsHive(lastUpdated: DateTime.now())) {
+  SettingsNotifier() : super(SettingsHive(
+    vatPercentage: 15.0,
+    discountPercentage: 0.0,
+    discountAmount: 0.0,
+    isDiscountPercentage: true,
+    enableRoundOff: false,
+    lastUpdated: DateTime.now(),
+  )) {
     _loadSettings();
   }
 
   Future<void> _loadSettings() async {
-    final settings = await DatabaseService.getSettings();
-    if (settings != null) {
-      state = settings;
-    }
+    final settings = DatabaseService.getSettings();
+    state = settings;
   }
 
   Future<void> updateVat(double percentage) async {
@@ -102,5 +108,3 @@ final cartFinalTotalProvider = Provider<double>((ref) {
   return settings.calculateTotal(subtotal);
 });
 
-// Import the cart provider from pos_riverpod_provider
-import '../providers/pos_riverpod_provider.dart' show cartProvider;

@@ -8,6 +8,8 @@ import '../widgets/product_grid_riverpod.dart';
 import '../widgets/cart_panel_riverpod.dart';
 import '../widgets/category_breadcrumb_riverpod.dart';
 import '../widgets/add_product_dialog.dart';
+import '../widgets/modern_notification.dart';
+import '../screens/settings_screen.dart';
 
 class POSScreenRiverpod extends ConsumerStatefulWidget {
   const POSScreenRiverpod({super.key});
@@ -37,14 +39,7 @@ class _POSScreenRiverpodState extends ConsumerState<POSScreenRiverpod> {
     ref.read(isRefreshingProvider.notifier).state = false;
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data refreshed successfully'),
-          duration: Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Color(0xFF27AE60),
-        ),
-      );
+      NotificationHelpers.showSuccess(ref, 'Data refreshed successfully');
     }
   }
 
@@ -53,41 +48,43 @@ class _POSScreenRiverpodState extends ConsumerState<POSScreenRiverpod> {
     final isRefreshing = ref.watch(isRefreshingProvider);
     final isDark = ref.watch(isDarkModeProvider);
 
-    return Scaffold(
-      backgroundColor: AppTheme.getBackgroundColor(isDark),
-      body: Row(
-        children: [
-          // Left Panel - Categories and Products
-          Expanded(
-            flex: 7,
-            child: Column(
-              children: [
-                _buildTopBar(isRefreshing),
-                Expanded(
-                  child: _isSearching
-                      ? _buildSearchResults()
-                      : _buildMainContent(),
-                ),
-              ],
+    return ModernNotificationOverlay(
+      child: Scaffold(
+        backgroundColor: AppTheme.getBackgroundColor(isDark),
+        body: Row(
+          children: [
+            // Left Panel - Categories and Products
+            Expanded(
+              flex: 7,
+              child: Column(
+                children: [
+                  _buildTopBar(isRefreshing),
+                  Expanded(
+                    child: _isSearching
+                        ? _buildSearchResults()
+                        : _buildMainContent(),
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          // Right Panel - Cart
-          Container(
-            width: 380,
-            decoration: BoxDecoration(
-              color: AppTheme.getSurfaceColor(isDark),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(-2, 0),
-                ),
-              ],
+            // Right Panel - Cart
+            Container(
+              width: 380,
+              decoration: BoxDecoration(
+                color: AppTheme.getSurfaceColor(isDark),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(-2, 0),
+                  ),
+                ],
+              ),
+              child: const CartPanelRiverpod(),
             ),
-            child: const CartPanelRiverpod(),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -135,7 +132,14 @@ class _POSScreenRiverpodState extends ConsumerState<POSScreenRiverpod> {
               const SizedBox(width: 8),
               _buildSearchBar(),
               const SizedBox(width: 16),
-              _buildIconButton(Icons.settings, () {}),
+              _buildIconButton(Icons.settings, () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              }),
               const SizedBox(width: 8),
               _buildIconButton(Icons.person, () {}),
             ],
