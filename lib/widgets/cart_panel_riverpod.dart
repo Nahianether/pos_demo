@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../providers/pos_riverpod_provider.dart';
+import '../providers/theme_provider.dart';
+import '../config/app_theme.dart';
 import '../models/cart_item_hive.dart';
 import 'checkout_dialog_riverpod.dart';
 
@@ -21,24 +23,25 @@ class CartPanelRiverpod extends ConsumerWidget {
 
   Widget _buildHeader(WidgetRef ref) {
     final cartItems = ref.watch(cartProvider);
+    final isDark = ref.watch(isDarkModeProvider);
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Colors.grey[200]!),
+          bottom: BorderSide(color: AppTheme.getBorderColor(isDark)),
         ),
       ),
       child: Row(
         children: [
           const Icon(Icons.shopping_cart, color: Color(0xFF3498DB)),
           const SizedBox(width: 12),
-          const Text(
+          Text(
             'Current Order',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF2C3E50),
+              color: AppTheme.getTextColor(isDark),
             ),
           ),
           const Spacer(),
@@ -116,18 +119,19 @@ class CartPanelRiverpod extends ConsumerWidget {
     final cartItems = ref.watch(cartProvider);
     final cartTotal = ref.watch(cartTotalProvider);
     final cartItemsCount = ref.watch(cartItemsCountProvider);
+    final isDark = ref.watch(isDarkModeProvider);
     final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.getSurfaceColor(isDark),
         border: Border(
-          top: BorderSide(color: Colors.grey[200]!),
+          top: BorderSide(color: AppTheme.getBorderColor(isDark)),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -142,12 +146,12 @@ class CartPanelRiverpod extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Total',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C3E50),
+                  color: AppTheme.getTextColor(isDark),
                 ),
               ),
               Text(
@@ -192,25 +196,30 @@ class CartPanelRiverpod extends ConsumerWidget {
   }
 
   Widget _buildSummaryRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 15,
-            color: Colors.grey[700],
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF2C3E50),
-          ),
-        ),
-      ],
+    return Consumer(
+      builder: (context, ref, _) {
+        final isDark = ref.watch(isDarkModeProvider);
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                color: AppTheme.getSecondaryTextColor(isDark),
+              ),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.getTextColor(isDark),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -230,14 +239,15 @@ class _CartItemTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+    final isDark = ref.watch(isDarkModeProvider);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
+        color: AppTheme.getSurfaceVariantColor(isDark),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
+        border: Border.all(color: AppTheme.getBorderColor(isDark)),
       ),
       child: Column(
         children: [
@@ -249,10 +259,10 @@ class _CartItemTile extends ConsumerWidget {
                   children: [
                     Text(
                       cartItem.product.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF2C3E50),
+                        color: AppTheme.getTextColor(isDark),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -260,7 +270,7 @@ class _CartItemTile extends ConsumerWidget {
                       currencyFormat.format(cartItem.product.price),
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[600],
+                        color: AppTheme.getSecondaryTextColor(isDark),
                       ),
                     ),
                   ],
@@ -282,9 +292,9 @@ class _CartItemTile extends ConsumerWidget {
             children: [
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.getSurfaceColor(isDark),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE0E0E0)),
+                  border: Border.all(color: AppTheme.getBorderColor(isDark)),
                 ),
                 child: Row(
                   children: [
@@ -303,10 +313,10 @@ class _CartItemTile extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         '${cartItem.quantity}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF2C3E50),
+                          color: AppTheme.getTextColor(isDark),
                         ),
                       ),
                     ),

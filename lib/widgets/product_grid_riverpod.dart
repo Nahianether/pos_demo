@@ -46,9 +46,9 @@ class ProductGridRiverpod extends ConsumerWidget {
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
-      itemCount: productList?.length ?? 0,
+      itemCount: productList.length,
       itemBuilder: (context, index) {
-        return _ProductCard(product: productList![index]);
+        return _ProductCard(product: productList[index]);
       },
     );
   }

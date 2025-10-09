@@ -2,11 +2,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/category_hive.dart';
 import '../models/product_hive.dart';
 import '../models/cart_item_hive.dart';
+import '../models/theme_preference.dart';
 
 class DatabaseService {
   static const String categoriesBox = 'categories';
   static const String productsBox = 'products';
   static const String cartBox = 'cart';
+  static const String themeBox = 'theme_preferences';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -15,11 +17,14 @@ class DatabaseService {
     Hive.registerAdapter(CategoryHiveAdapter());
     Hive.registerAdapter(ProductHiveAdapter());
     Hive.registerAdapter(CartItemHiveAdapter());
+    Hive.registerAdapter(AppThemeModeAdapter());
+    Hive.registerAdapter(ThemePreferenceAdapter());
 
     // Open boxes
     await Hive.openBox<CategoryHive>(categoriesBox);
     await Hive.openBox<ProductHive>(productsBox);
     await Hive.openBox<CartItemHive>(cartBox);
+    await Hive.openBox<ThemePreference>(themeBox);
   }
 
   // Category operations
