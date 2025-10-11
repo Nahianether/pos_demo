@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../providers/pos_riverpod_provider.dart';
+import '../providers/settings_provider.dart';
 import '../providers/theme_provider.dart';
 import '../config/app_theme.dart';
 import '../models/cart_item_hive.dart';
@@ -122,8 +123,12 @@ class CartPanelRiverpod extends ConsumerWidget {
 
   Widget _buildFooter(BuildContext context, WidgetRef ref) {
     final cartItems = ref.watch(cartProvider);
+    final subtotal = ref.watch(cartSubtotalProvider);
+    final vat = ref.watch(cartVatProvider);
+    final discount = ref.watch(cartDiscountProvider);
     final cartTotal = ref.watch(cartTotalProvider);
     final cartItemsCount = ref.watch(cartItemsCountProvider);
+    final settings = ref.watch(settingsProvider);
     final isDark = ref.watch(isDarkModeProvider);
     final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
@@ -146,7 +151,29 @@ class CartPanelRiverpod extends ConsumerWidget {
         children: [
           _buildSummaryRow('Items', '$cartItemsCount'),
           const SizedBox(height: 8),
-          _buildSummaryRow('Subtotal', currencyFormat.format(cartTotal)),
+          _buildSummaryRow('Subtotal', currencyFormat.format(subtotal)),
+
+          // Show VAT if greater than 0
+          if (vat > 0) ...[
+            const SizedBox(height: 8),
+            _buildSummaryRow(
+              'VAT (${settings.vatPercentage.toStringAsFixed(1)}%)',
+              currencyFormat.format(vat),
+            ),
+          ],
+
+          // Show Discount if greater than 0
+          if (discount > 0) ...[
+            const SizedBox(height: 8),
+            _buildSummaryRow(
+              settings.isDiscountPercentage
+                  ? 'Discount (${settings.discountPercentage.toStringAsFixed(1)}%)'
+                  : 'Discount',
+              '- ${currencyFormat.format(discount)}',
+              valueColor: const Color(0xFFE74C3C),
+            ),
+          ],
+
           const Divider(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -200,7 +227,7 @@ class CartPanelRiverpod extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value) {
+  Widget _buildSummaryRow(String label, String value, {Color? valueColor}) {
     return Consumer(
       builder: (context, ref, _) {
         final isDark = ref.watch(isDarkModeProvider);
@@ -219,7 +246,7 @@ class CartPanelRiverpod extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.getTextColor(isDark),
+                color: valueColor ?? AppTheme.getTextColor(isDark),
               ),
             ),
           ],

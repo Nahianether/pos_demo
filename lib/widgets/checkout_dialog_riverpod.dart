@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import '../providers/pos_riverpod_provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/modern_notification.dart';
+import '../services/thermal_printer_service.dart';
+import '../models/cart_item_hive.dart';
+import '../models/settings_hive.dart';
 
 enum PaymentMethod { cash, card, digital }
 
@@ -18,6 +21,14 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
   PaymentMethod _selectedPaymentMethod = PaymentMethod.cash;
   final TextEditingController _customerNameController = TextEditingController();
   bool _isFriendBill = false;
+
+  // Store last order data for re-printing
+  List<CartItemHive>? _lastOrderItems;
+  double? _lastOrderSubtotal;
+  SettingsHive? _lastOrderSettings;
+  String? _lastCustomerName;
+  bool? _lastIsFriendBill;
+  String? _lastPaymentMethod;
 
   @override
   void dispose() {
@@ -189,8 +200,8 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
                 const SizedBox(height: 4),
                 Text(
                   _isFriendBill
-                    ? 'Bill will be rounded to nearest whole number'
-                    : 'Apply friend discount and round total',
+                    ? 'Bill will be rounded down to whole number'
+                    : 'Apply friend discount and round down total',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey[600],
@@ -219,7 +230,7 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
     // Calculate total with friend bill logic
     double total = settings.calculateTotal(subtotal);
     if (_isFriendBill) {
-      total = total.roundToDouble();
+      total = total.floorToDouble(); // Always round down for friend bills
     }
 
     return Container(
@@ -332,11 +343,39 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
     final subtotal = ref.read(cartSubtotalProvider);
     final cartItems = ref.read(cartProvider);
     final settings = ref.read(settingsProvider);
+    final customerName = _customerNameController.text.trim().isNotEmpty
+        ? _customerNameController.text.trim()
+        : null;
+
+    // Store order data for re-printing
+    _lastOrderItems = List.from(cartItems);
+    _lastOrderSubtotal = subtotal;
+    _lastOrderSettings = settings;
+    _lastCustomerName = customerName;
+    _lastIsFriendBill = _isFriendBill;
+    _lastPaymentMethod = _selectedPaymentMethod.name.toUpperCase();
 
     // Calculate total with friend bill logic
     double total = settings.calculateTotal(subtotal);
     if (_isFriendBill) {
-      total = total.roundToDouble();
+      total = total.floorToDouble(); // Always round down for friend bills
+    }
+
+    // Print receipt
+    try {
+      await ThermalPrinterService().printReceipt(
+        items: cartItems,
+        subtotal: subtotal,
+        settings: settings,
+        customerName: customerName,
+        isFriendBill: _isFriendBill,
+        paymentMethod: _selectedPaymentMethod.name.toUpperCase(),
+      );
+    } catch (e) {
+      // If printing fails, show error but still complete the order
+      if (mounted) {
+        NotificationHelpers.showError(ref, 'Failed to print receipt: $e');
+      }
     }
 
     // Clear the cart
@@ -426,32 +465,124 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
                 ),
               ),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3498DB),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: _reprintReceipt,
+                        icon: const Icon(Icons.print, size: 18),
+                        label: const Text('Print'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF3498DB),
+                          side: const BorderSide(color: Color(0xFF3498DB)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
                     ),
-                    elevation: 0,
                   ),
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: _generatePdf,
+                        icon: const Icon(Icons.picture_as_pdf, size: 18),
+                        label: const Text('PDF'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFE67E22),
+                          side: const BorderSide(color: Color(0xFFE67E22)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF27AE60),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Done',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  void _reprintReceipt() async {
+    if (_lastOrderItems == null || _lastOrderSubtotal == null || _lastOrderSettings == null) {
+      return;
+    }
+
+    try {
+      await ThermalPrinterService().printReceipt(
+        items: _lastOrderItems!,
+        subtotal: _lastOrderSubtotal!,
+        settings: _lastOrderSettings!,
+        customerName: _lastCustomerName,
+        isFriendBill: _lastIsFriendBill ?? false,
+        paymentMethod: _lastPaymentMethod ?? 'CASH',
+      );
+
+      if (mounted) {
+        NotificationHelpers.showSuccess(ref, 'Receipt sent to printer');
+      }
+    } catch (e) {
+      if (mounted) {
+        NotificationHelpers.showError(ref, 'Printing failed: $e');
+      }
+    }
+  }
+
+  void _generatePdf() async {
+    if (_lastOrderItems == null || _lastOrderSubtotal == null || _lastOrderSettings == null) {
+      return;
+    }
+
+    try {
+      await ThermalPrinterService().printOrGeneratePdf(
+        items: _lastOrderItems!,
+        subtotal: _lastOrderSubtotal!,
+        settings: _lastOrderSettings!,
+        customerName: _lastCustomerName,
+        isFriendBill: _lastIsFriendBill ?? false,
+        paymentMethod: _lastPaymentMethod ?? 'CASH',
+        forcePdf: true, // Force PDF generation
+      );
+
+      if (mounted) {
+        NotificationHelpers.showSuccess(ref, 'PDF receipt generated');
+      }
+    } catch (e) {
+      if (mounted) {
+        NotificationHelpers.showError(ref, 'Failed to generate PDF: $e');
+      }
+    }
   }
 }

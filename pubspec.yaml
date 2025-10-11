@@ -47,6 +47,11 @@ dependencies:
   uuid: ^4.2.1
   cached_network_image: ^3.3.0
 
+  # Thermal Printing
+  esc_pos_utils_plus: ^2.0.1
+  printing: ^5.13.4
+  pdf: ^3.11.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

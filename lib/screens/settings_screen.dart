@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/settings_provider.dart';
+import '../providers/pos_riverpod_provider.dart';
 import '../widgets/modern_notification.dart';
+import '../services/dummy_data_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -230,6 +232,68 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
               const SizedBox(height: 24),
 
+              // Dummy Data Management
+              _buildSection(
+                title: 'Test Data Generator',
+                icon: Icons.storage,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Generate dummy data for testing',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDataStats(),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _generateQuickData,
+                          icon: const Icon(Icons.bolt, size: 18),
+                          label: const Text('Quick Sample (10)'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3498DB),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: _generateMediumData,
+                          icon: const Icon(Icons.data_array, size: 18),
+                          label: const Text('Medium Set (50)'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF27AE60),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: _generateLargeData,
+                          icon: const Icon(Icons.inventory, size: 18),
+                          label: const Text('Large Set (100)'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE67E22),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: _clearAllData,
+                          icon: const Icon(Icons.delete_sweep, size: 18),
+                          label: const Text('Clear All Data'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE74C3C),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               // Quick Actions
               _buildSection(
                 title: 'Quick Actions',
@@ -355,5 +419,161 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } else {
       NotificationHelpers.showError(ref, 'Please enter a valid discount value');
     }
+  }
+
+  Widget _buildDataStats() {
+    final stats = DummyDataService.getDataStatistics();
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildStatItem('Categories', stats['totalCategories']!, theme),
+              _buildStatItem('Products', stats['totalProducts']!, theme),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, int value, ThemeData theme) {
+    return Column(
+      children: [
+        Text(
+          value.toString(),
+          style: theme.textTheme.headlineSmall?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+
+  Future<void> _generateQuickData() async {
+    _showLoadingDialog('Generating quick sample data...');
+    try {
+      await DummyDataService.generateQuickSampleData();
+      await ref.read(categoriesProvider.notifier).refresh();
+      await ref.read(productsProvider.notifier).refresh();
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        NotificationHelpers.showSuccess(ref, 'Quick sample data generated!');
+        setState(() {}); // Refresh stats
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        NotificationHelpers.showError(ref, 'Failed to generate data: $e');
+      }
+    }
+  }
+
+  Future<void> _generateMediumData() async {
+    _showLoadingDialog('Generating medium dataset...');
+    try {
+      await DummyDataService.generateDummyData(categoriesCount: 50, productsPerCategory: 10);
+      await ref.read(categoriesProvider.notifier).refresh();
+      await ref.read(productsProvider.notifier).refresh();
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        NotificationHelpers.showSuccess(ref, 'Medium dataset generated!');
+        setState(() {}); // Refresh stats
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        NotificationHelpers.showError(ref, 'Failed to generate data: $e');
+      }
+    }
+  }
+
+  Future<void> _generateLargeData() async {
+    _showLoadingDialog('Generating large dataset... This may take a moment.');
+    try {
+      await DummyDataService.generateLargeDataset();
+      await ref.read(categoriesProvider.notifier).refresh();
+      await ref.read(productsProvider.notifier).refresh();
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        NotificationHelpers.showSuccess(ref, 'Large dataset generated!');
+        setState(() {}); // Refresh stats
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        NotificationHelpers.showError(ref, 'Failed to generate data: $e');
+      }
+    }
+  }
+
+  Future<void> _clearAllData() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear All Data'),
+        content: const Text('This will delete all categories and products. Are you sure?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await DummyDataService.clearAllData();
+        await ref.read(categoriesProvider.notifier).refresh();
+        await ref.read(productsProvider.notifier).refresh();
+        if (mounted) {
+          NotificationHelpers.showSuccess(ref, 'All data cleared!');
+          setState(() {}); // Refresh stats
+        }
+      } catch (e) {
+        if (mounted) {
+          NotificationHelpers.showError(ref, 'Failed to clear data: $e');
+        }
+      }
+    }
+  }
+
+  void _showLoadingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(message),
+          ],
+        ),
+      ),
+    );
   }
 }
