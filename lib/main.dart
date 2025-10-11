@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'services/database_service.dart';
+import 'services/initial_data_service.dart';
 import 'screens/pos_screen_riverpod.dart';
 import 'providers/theme_provider.dart';
 import 'config/app_theme.dart';
@@ -16,6 +17,11 @@ void main() async {
   ]);
 
   await DatabaseService.init();
+
+  // Load initial realistic data (force reload to clear old data)
+  // Set forceReload to false after first successful load
+  await InitialDataService.initializeData(forceReload: true);
+
   runApp(const ProviderScope(child: MyApp()));
 }
 
