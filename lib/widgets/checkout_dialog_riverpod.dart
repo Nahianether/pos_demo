@@ -20,7 +20,10 @@ class CheckoutDialogRiverpod extends ConsumerStatefulWidget {
 class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod> {
   PaymentMethod _selectedPaymentMethod = PaymentMethod.cash;
   final TextEditingController _customerNameController = TextEditingController();
+  final TextEditingController _manualDiscountController = TextEditingController();
   bool _isFriendBill = false;
+  bool _enableManualDiscount = false;
+  bool _isManualDiscountPercentage = true; // true for %, false for fixed amount
 
   // Store last order data for re-printing
   List<CartItemHive>? _lastOrderItems;
@@ -29,10 +32,12 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
   String? _lastCustomerName;
   bool? _lastIsFriendBill;
   String? _lastPaymentMethod;
+  double? _lastManualDiscount;
 
   @override
   void dispose() {
     _customerNameController.dispose();
+    _manualDiscountController.dispose();
     super.dispose();
   }
 
@@ -72,6 +77,8 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
             _buildCustomerNameField(),
             const SizedBox(height: 16),
             _buildFriendBillOption(),
+            const SizedBox(height: 16),
+            _buildManualDiscountSection(),
             const SizedBox(height: 16),
             _buildPaymentMethodSelector(),
             const SizedBox(height: 20),
@@ -220,6 +227,183 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
     );
   }
 
+  Widget _buildManualDiscountSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _enableManualDiscount ? const Color(0xFFE67E22) : const Color(0xFFE0E0E0),
+          width: _enableManualDiscount ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _enableManualDiscount ? Icons.local_offer : Icons.local_offer_outlined,
+                color: _enableManualDiscount ? const Color(0xFFE67E22) : const Color(0xFF95A5A6),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Additional Discount',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: _enableManualDiscount ? const Color(0xFFE67E22) : const Color(0xFF2C3E50),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Add extra discount on top of default discount',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _enableManualDiscount,
+                onChanged: (value) {
+                  setState(() {
+                    _enableManualDiscount = value;
+                    if (!value) {
+                      _manualDiscountController.clear();
+                    }
+                  });
+                },
+                activeColor: const Color(0xFFE67E22),
+              ),
+            ],
+          ),
+          if (_enableManualDiscount) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _manualDiscountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: _isManualDiscountPercentage ? 'Discount %' : 'Discount Amount',
+                      prefixIcon: Icon(
+                        _isManualDiscountPercentage ? Icons.percent : Icons.attach_money,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE67E22), width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE0E0E0)),
+                  ),
+                  child: Row(
+                    children: [
+                      InkWell(
+                        onTap: () => setState(() => _isManualDiscountPercentage = true),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          bottomLeft: Radius.circular(12),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _isManualDiscountPercentage
+                              ? const Color(0xFFE67E22)
+                              : Colors.transparent,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              bottomLeft: Radius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            '%',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: _isManualDiscountPercentage
+                                ? Colors.white
+                                : const Color(0xFF95A5A6),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 1,
+                        height: 24,
+                        color: const Color(0xFFE0E0E0),
+                      ),
+                      InkWell(
+                        onTap: () => setState(() => _isManualDiscountPercentage = false),
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(12),
+                          bottomRight: Radius.circular(12),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: !_isManualDiscountPercentage
+                              ? const Color(0xFFE67E22)
+                              : Colors.transparent,
+                            borderRadius: const BorderRadius.only(
+                              topRight: Radius.circular(12),
+                              bottomRight: Radius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            '\$',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: !_isManualDiscountPercentage
+                                ? Colors.white
+                                : const Color(0xFF95A5A6),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  double _calculateManualDiscount(double subtotal) {
+    if (!_enableManualDiscount) return 0.0;
+
+    final value = double.tryParse(_manualDiscountController.text) ?? 0.0;
+    if (value <= 0) return 0.0;
+
+    if (_isManualDiscountPercentage) {
+      return subtotal * (value / 100);
+    } else {
+      return value;
+    }
+  }
+
   Widget _buildOrderSummary() {
     final subtotal = ref.watch(cartSubtotalProvider);
     final vat = ref.watch(cartVatProvider);
@@ -227,8 +411,11 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
     final settings = ref.watch(settingsProvider);
     final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
-    // Calculate total with friend bill logic
-    double total = settings.calculateTotal(subtotal);
+    // Calculate manual discount
+    final manualDiscount = _calculateManualDiscount(subtotal);
+
+    // Calculate total with manual discount and friend bill logic
+    double total = settings.calculateTotal(subtotal) - manualDiscount;
     if (_isFriendBill) {
       total = total.floorToDouble(); // Always round down for friend bills
     }
@@ -256,10 +443,20 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
             ),
             const SizedBox(height: 8),
           ],
+          if (manualDiscount > 0) ...[
+            _buildSummaryRow(
+              _isManualDiscountPercentage
+                ? 'Additional Discount (${_manualDiscountController.text}%)'
+                : 'Additional Discount',
+              '- ${currencyFormat.format(manualDiscount)}',
+              color: const Color(0xFFE67E22),
+            ),
+            const SizedBox(height: 8),
+          ],
           if (_isFriendBill) ...[
             _buildSummaryRow(
               'Round Off Adjustment',
-              currencyFormat.format(total - settings.calculateTotal(subtotal)),
+              currencyFormat.format(total - (settings.calculateTotal(subtotal) - manualDiscount)),
               color: const Color(0xFF27AE60),
             ),
             const SizedBox(height: 8),
@@ -347,6 +544,9 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
         ? _customerNameController.text.trim()
         : null;
 
+    // Calculate manual discount
+    final manualDiscount = _calculateManualDiscount(subtotal);
+
     // Store order data for re-printing
     _lastOrderItems = List.from(cartItems);
     _lastOrderSubtotal = subtotal;
@@ -354,9 +554,10 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
     _lastCustomerName = customerName;
     _lastIsFriendBill = _isFriendBill;
     _lastPaymentMethod = _selectedPaymentMethod.name.toUpperCase();
+    _lastManualDiscount = manualDiscount;
 
-    // Calculate total with friend bill logic
-    double total = settings.calculateTotal(subtotal);
+    // Calculate total with manual discount and friend bill logic
+    double total = settings.calculateTotal(subtotal) - manualDiscount;
     if (_isFriendBill) {
       total = total.floorToDouble(); // Always round down for friend bills
     }
@@ -370,6 +571,7 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
         customerName: customerName,
         isFriendBill: _isFriendBill,
         paymentMethod: _selectedPaymentMethod.name.toUpperCase(),
+        manualDiscount: manualDiscount,
       );
     } catch (e) {
       // If printing fails, show error but still complete the order
@@ -548,6 +750,7 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
         customerName: _lastCustomerName,
         isFriendBill: _lastIsFriendBill ?? false,
         paymentMethod: _lastPaymentMethod ?? 'CASH',
+        manualDiscount: _lastManualDiscount ?? 0.0,
       );
 
       if (mounted) {
@@ -574,6 +777,7 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
         isFriendBill: _lastIsFriendBill ?? false,
         paymentMethod: _lastPaymentMethod ?? 'CASH',
         forcePdf: true, // Force PDF generation
+        manualDiscount: _lastManualDiscount ?? 0.0,
       );
 
       if (mounted) {

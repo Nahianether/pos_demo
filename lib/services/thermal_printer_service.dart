@@ -19,6 +19,7 @@ class ThermalPrinterService {
     String? customerName,
     bool isFriendBill = false,
     String paymentMethod = 'Cash',
+    double manualDiscount = 0.0,
   }) async {
     try {
       final pdf = await _generateReceipt(
@@ -28,6 +29,7 @@ class ThermalPrinterService {
         customerName: customerName,
         isFriendBill: isFriendBill,
         paymentMethod: paymentMethod,
+        manualDiscount: manualDiscount,
       );
 
       // Try to print the receipt
@@ -46,6 +48,7 @@ class ThermalPrinterService {
           customerName: customerName,
           isFriendBill: isFriendBill,
           paymentMethod: paymentMethod,
+          manualDiscount: manualDiscount,
         );
         return true;
       } catch (pdfError) {
@@ -64,6 +67,7 @@ class ThermalPrinterService {
     bool isFriendBill = false,
     String paymentMethod = 'Cash',
     bool forcePdf = false,
+    double manualDiscount = 0.0,
   }) async {
     final pdf = await _generateReceipt(
       items: items,
@@ -72,6 +76,7 @@ class ThermalPrinterService {
       customerName: customerName,
       isFriendBill: isFriendBill,
       paymentMethod: paymentMethod,
+      manualDiscount: manualDiscount,
     );
 
     if (forcePdf) {
@@ -107,6 +112,7 @@ class ThermalPrinterService {
     String? customerName,
     bool isFriendBill = false,
     String paymentMethod = 'Cash',
+    double manualDiscount = 0.0,
   }) async {
     try {
       final pdf = await _generateReceipt(
@@ -116,6 +122,7 @@ class ThermalPrinterService {
         customerName: customerName,
         isFriendBill: isFriendBill,
         paymentMethod: paymentMethod,
+        manualDiscount: manualDiscount,
       );
 
       // Share the receipt
@@ -136,6 +143,7 @@ class ThermalPrinterService {
     String? customerName,
     bool isFriendBill = false,
     String paymentMethod = 'Cash',
+    double manualDiscount = 0.0,
   }) async {
     final pdf = pw.Document();
     final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
@@ -144,7 +152,7 @@ class ThermalPrinterService {
 
     final vat = settings.calculateVat(subtotal);
     final discount = settings.calculateDiscount(subtotal);
-    double total = settings.calculateTotal(subtotal);
+    double total = settings.calculateTotal(subtotal) - manualDiscount;
 
     if (isFriendBill) {
       total = total.roundToDouble();
@@ -330,6 +338,18 @@ class ThermalPrinterService {
                 ),
               ],
 
+              // Manual/Additional Discount
+              if (manualDiscount > 0) ...[
+                pw.SizedBox(height: 4),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('Additional Discount:'),
+                    pw.Text('- ${currencyFormat.format(manualDiscount)}'),
+                  ],
+                ),
+              ],
+
               // Friend Bill Round Off
               if (isFriendBill) ...[
                 pw.SizedBox(height: 4),
@@ -338,7 +358,7 @@ class ThermalPrinterService {
                   children: [
                     pw.Text('Round Off:'),
                     pw.Text(
-                      currencyFormat.format(total - settings.calculateTotal(subtotal)),
+                      currencyFormat.format(total - (settings.calculateTotal(subtotal) - manualDiscount)),
                     ),
                   ],
                 ),
