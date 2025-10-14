@@ -8,6 +8,7 @@ import '../widgets/product_grid_riverpod.dart';
 import '../widgets/cart_panel_riverpod.dart';
 import '../widgets/category_breadcrumb_riverpod.dart';
 import '../widgets/add_product_dialog.dart';
+import '../widgets/qr_scanner_dialog.dart';
 import '../widgets/modern_notification.dart';
 import '../screens/settings_screen.dart';
 
@@ -124,6 +125,8 @@ class _POSScreenRiverpodState extends ConsumerState<POSScreenRiverpod> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               const Spacer(),
+              _buildQRScanButton(),
+              const SizedBox(width: 8),
               _buildRefreshButton(),
               const SizedBox(width: 8),
               _buildThemeToggleButton(),
@@ -147,6 +150,28 @@ class _POSScreenRiverpodState extends ConsumerState<POSScreenRiverpod> {
           const SizedBox(height: 16),
           const CategoryBreadcrumbRiverpod(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildQRScanButton() {
+    return InkWell(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => const QRScannerDialog(),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 45,
+        height: 45,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE67E22).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE67E22).withValues(alpha: 0.3)),
+        ),
+        child: const Icon(Icons.qr_code_scanner, color: Color(0xFFE67E22)),
       ),
     );
   }
