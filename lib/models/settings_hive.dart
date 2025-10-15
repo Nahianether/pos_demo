@@ -22,6 +22,9 @@ class SettingsHive extends HiveObject {
   @HiveField(5)
   DateTime lastUpdated;
 
+  @HiveField(6)
+  bool isApiMode;
+
   SettingsHive({
     this.vatPercentage = 0.0,
     this.discountPercentage = 0.0,
@@ -29,6 +32,7 @@ class SettingsHive extends HiveObject {
     this.isDiscountPercentage = true,
     this.enableRoundOff = false,
     required this.lastUpdated,
+    this.isApiMode = false,
   });
 
   // Calculate VAT amount

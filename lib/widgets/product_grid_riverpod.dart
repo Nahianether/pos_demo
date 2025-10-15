@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/pos_riverpod_provider.dart';
+import '../providers/api_pos_provider.dart';
 import '../models/product_hive.dart';
 
 class ProductGridRiverpod extends ConsumerWidget {
@@ -13,9 +14,11 @@ class ProductGridRiverpod extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedCategoryId = ref.watch(selectedCategoryProvider);
+
+    // Always use API providers
     final productList = products ??
         (selectedCategoryId != null
-            ? ref.watch(productsByCategoryProvider(selectedCategoryId))
+            ? ref.watch(apiProductsByCategoryProvider(selectedCategoryId))
             : <ProductHive>[]);
 
     if (productList == null || productList.isEmpty) {
@@ -75,7 +78,8 @@ class _ProductCardState extends ConsumerState<_ProductCard> {
       onExit: (_) => setState(() => _isHovered = false),
       child: InkWell(
         onTap: () async {
-          await ref.read(cartProvider.notifier).addToCart(widget.product);
+          // Always use API cart
+          await ref.read(apiCartProvider.notifier).addToCart(widget.product);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

@@ -127,11 +127,30 @@ class DatabaseService {
       isDiscountPercentage: true,
       enableRoundOff: false,
       lastUpdated: DateTime.now(),
+      isApiMode: false,
     );
   }
 
   static Future<void> saveSettings(SettingsHive settings) async {
     final box = getSettingsBox();
     await box.put('settings', settings);
+  }
+
+  // Clear all data operations
+  /// Clear all data from Hive storage (categories, products, cart)
+  /// This will preserve settings and theme preferences
+  static Future<void> clearAllData() async {
+    await getCategoriesBox().clear();
+    await getProductsBox().clear();
+    await clearCart();
+  }
+
+  /// Clear absolutely everything including settings and theme
+  static Future<void> clearEverything() async {
+    await getCategoriesBox().clear();
+    await getProductsBox().clear();
+    await clearCart();
+    await getSettingsBox().clear();
+    await Hive.box<ThemePreference>(themeBox).clear();
   }
 }

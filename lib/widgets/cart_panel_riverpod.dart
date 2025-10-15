@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../providers/pos_riverpod_provider.dart';
+import '../providers/api_pos_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/theme_provider.dart';
 import '../config/app_theme.dart';
@@ -25,7 +26,8 @@ class CartPanelRiverpod extends ConsumerWidget {
   }
 
   Widget _buildHeader(WidgetRef ref) {
-    final cartItems = ref.watch(cartProvider);
+    // Always use API cart
+    final cartItems = ref.watch(apiCartProvider).valueOrNull ?? [];
     final isDark = ref.watch(isDarkModeProvider);
 
     return Container(
@@ -50,7 +52,9 @@ class CartPanelRiverpod extends ConsumerWidget {
           const Spacer(),
           if (cartItems.isNotEmpty)
             InkWell(
-              onTap: () => ref.read(cartProvider.notifier).clearCart(),
+              onTap: () {
+                ref.read(apiCartProvider.notifier).clearCart();
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -79,7 +83,8 @@ class CartPanelRiverpod extends ConsumerWidget {
   }
 
   Widget _buildCartItems(WidgetRef ref) {
-    final cartItems = ref.watch(cartProvider);
+    // Always use API cart
+    final cartItems = ref.watch(apiCartProvider).valueOrNull ?? [];
 
     if (cartItems.isEmpty) {
       return Center(
@@ -122,7 +127,8 @@ class CartPanelRiverpod extends ConsumerWidget {
   }
 
   Widget _buildFooter(BuildContext context, WidgetRef ref) {
-    final cartItems = ref.watch(cartProvider);
+    // Always use API cart
+    final cartItems = ref.watch(apiCartProvider).valueOrNull ?? [];
     final subtotal = ref.watch(cartSubtotalProvider);
     final vat = ref.watch(cartVatProvider);
     final discount = ref.watch(cartDiscountProvider);
@@ -311,7 +317,8 @@ class _CartItemTile extends ConsumerWidget {
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
                 onPressed: () {
-                  ref.read(cartProvider.notifier).removeFromCart(cartItem.product.id);
+                  // Always use API cart
+                  ref.read(apiCartProvider.notifier).removeFromCart(cartItem.product.id);
                 },
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -335,7 +342,8 @@ class _CartItemTile extends ConsumerWidget {
                       ref,
                       Icons.remove,
                       () {
-                        ref.read(cartProvider.notifier).updateQuantity(
+                        // Always use API cart
+                        ref.read(apiCartProvider.notifier).updateQuantity(
                               cartItem.product.id,
                               cartItem.quantity - 1,
                             );
@@ -357,7 +365,8 @@ class _CartItemTile extends ConsumerWidget {
                       ref,
                       Icons.add,
                       () {
-                        ref.read(cartProvider.notifier).updateQuantity(
+                        // Always use API cart
+                        ref.read(apiCartProvider.notifier).updateQuantity(
                               cartItem.product.id,
                               cartItem.quantity + 1,
                             );

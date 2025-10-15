@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/pos_riverpod_provider.dart';
+import '../providers/api_pos_provider.dart';
 import '../providers/theme_provider.dart';
 import '../config/app_theme.dart';
 import '../widgets/category_grid_riverpod.dart';
@@ -32,9 +33,10 @@ class _POSScreenRiverpodState extends ConsumerState<POSScreenRiverpod> {
   Future<void> _refreshData() async {
     ref.read(isRefreshingProvider.notifier).state = true;
 
+    // Always refresh API data
     await Future.wait([
-      ref.read(categoriesProvider.notifier).refresh(),
-      ref.read(productsProvider.notifier).refresh(),
+      ref.read(apiCategoriesProvider.notifier).refresh(),
+      ref.read(apiProductsProvider.notifier).refresh(),
     ]);
 
     ref.read(isRefreshingProvider.notifier).state = false;
@@ -133,7 +135,7 @@ class _POSScreenRiverpodState extends ConsumerState<POSScreenRiverpod> {
               const SizedBox(width: 8),
               _buildAddProductButton(),
               const SizedBox(width: 8),
-              _buildSearchBar(),
+              Flexible(child: _buildSearchBar()),
               const SizedBox(width: 16),
               _buildIconButton(Icons.settings, () {
                 Navigator.push(
@@ -243,7 +245,7 @@ class _POSScreenRiverpodState extends ConsumerState<POSScreenRiverpod> {
     final isDark = ref.watch(isDarkModeProvider);
 
     return Container(
-      width: 300,
+      constraints: const BoxConstraints(maxWidth: 300),
       height: 45,
       decoration: BoxDecoration(
         color: AppTheme.getSurfaceVariantColor(isDark),
@@ -308,7 +310,8 @@ class _POSScreenRiverpodState extends ConsumerState<POSScreenRiverpod> {
           ? const CategoryGridRiverpod()
           : Consumer(
               builder: (context, ref, _) {
-                final subCategories = ref.watch(subCategoriesProvider(selectedCategoryId));
+                // Always use API providers
+                final subCategories = ref.watch(apiSubCategoriesProvider(selectedCategoryId));
 
                 if (subCategories.isNotEmpty) {
                   return const CategoryGridRiverpod();
@@ -321,7 +324,8 @@ class _POSScreenRiverpodState extends ConsumerState<POSScreenRiverpod> {
   }
 
   Widget _buildSearchResults() {
-    final products = ref.watch(searchResultsProvider(_searchController.text));
+    // Always use API search
+    final products = ref.watch(apiSearchResultsProvider(_searchController.text));
 
     if (products.isEmpty) {
       return Center(

@@ -16,13 +16,23 @@ class SettingsNotifier extends StateNotifier<SettingsHive> {
     isDiscountPercentage: true,
     enableRoundOff: false,
     lastUpdated: DateTime.now(),
+    isApiMode: true, // Always use API mode
   )) {
     _loadSettings();
   }
 
   Future<void> _loadSettings() async {
     final settings = DatabaseService.getSettings();
-    state = settings;
+    // Always ensure API mode is true
+    state = SettingsHive(
+      vatPercentage: settings.vatPercentage,
+      discountPercentage: settings.discountPercentage,
+      discountAmount: settings.discountAmount,
+      isDiscountPercentage: settings.isDiscountPercentage,
+      enableRoundOff: settings.enableRoundOff,
+      lastUpdated: settings.lastUpdated,
+      isApiMode: true, // Always use API mode
+    );
   }
 
   Future<void> updateVat(double percentage) async {
@@ -33,6 +43,7 @@ class SettingsNotifier extends StateNotifier<SettingsHive> {
       isDiscountPercentage: state.isDiscountPercentage,
       enableRoundOff: state.enableRoundOff,
       lastUpdated: DateTime.now(),
+      isApiMode: true, // Always use API mode
     );
     await DatabaseService.saveSettings(state);
   }
@@ -49,6 +60,7 @@ class SettingsNotifier extends StateNotifier<SettingsHive> {
       isDiscountPercentage: isPercentage ?? state.isDiscountPercentage,
       enableRoundOff: state.enableRoundOff,
       lastUpdated: DateTime.now(),
+      isApiMode: true, // Always use API mode
     );
     await DatabaseService.saveSettings(state);
   }
@@ -61,6 +73,7 @@ class SettingsNotifier extends StateNotifier<SettingsHive> {
       isDiscountPercentage: state.isDiscountPercentage,
       enableRoundOff: !state.enableRoundOff,
       lastUpdated: DateTime.now(),
+      isApiMode: true, // Always use API mode
     );
     await DatabaseService.saveSettings(state);
   }
@@ -73,6 +86,7 @@ class SettingsNotifier extends StateNotifier<SettingsHive> {
       isDiscountPercentage: state.isDiscountPercentage,
       enableRoundOff: enabled,
       lastUpdated: DateTime.now(),
+      isApiMode: true, // Always use API mode
     );
     await DatabaseService.saveSettings(state);
   }

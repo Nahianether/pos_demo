@@ -23,13 +23,14 @@ class SettingsHiveAdapter extends TypeAdapter<SettingsHive> {
       isDiscountPercentage: fields[3] as bool,
       enableRoundOff: fields[4] as bool,
       lastUpdated: fields[5] as DateTime,
+      isApiMode: fields[6] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, SettingsHive obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.vatPercentage)
       ..writeByte(1)
@@ -41,7 +42,9 @@ class SettingsHiveAdapter extends TypeAdapter<SettingsHive> {
       ..writeByte(4)
       ..write(obj.enableRoundOff)
       ..writeByte(5)
-      ..write(obj.lastUpdated);
+      ..write(obj.lastUpdated)
+      ..writeByte(6)
+      ..write(obj.isApiMode);
   }
 
   @override

@@ -3,61 +3,58 @@ import '../models/category_hive.dart';
 import '../models/product_hive.dart';
 import '../models/cart_item_hive.dart';
 import '../services/database_service.dart';
-import '../data/realistic_data.dart';
 import 'settings_provider.dart';
 
 // Categories Provider
 final categoriesProvider = StateNotifierProvider<CategoriesNotifier, List<CategoryHive>>((ref) {
-  return CategoriesNotifier();
+  final settings = ref.watch(settingsProvider);
+  return CategoriesNotifier(settings.isApiMode);
 });
 
 class CategoriesNotifier extends StateNotifier<List<CategoryHive>> {
-  CategoriesNotifier() : super([]) {
+  final bool isApiMode;
+
+  CategoriesNotifier(this.isApiMode) : super([]) {
     _loadCategories();
   }
 
   Future<void> _loadCategories() async {
     var categories = DatabaseService.getAllCategories();
-    if (categories.isEmpty) {
-      categories = RealisticData.getCategories();
-      await DatabaseService.saveCategories(categories);
-    }
+    // Don't load dummy data - only use server data
     state = categories;
   }
 
   Future<void> refresh() async {
-    // Simulate fetching new data from server
-    await Future.delayed(const Duration(seconds: 1));
-    final categories = RealisticData.getCategories();
-    await DatabaseService.saveCategories(categories);
+    // Reload categories from database (no dummy data)
+    await Future.delayed(const Duration(milliseconds: 500));
+    final categories = DatabaseService.getAllCategories();
     state = categories;
   }
 }
 
 // Products Provider
 final productsProvider = StateNotifierProvider<ProductsNotifier, List<ProductHive>>((ref) {
-  return ProductsNotifier();
+  final settings = ref.watch(settingsProvider);
+  return ProductsNotifier(settings.isApiMode);
 });
 
 class ProductsNotifier extends StateNotifier<List<ProductHive>> {
-  ProductsNotifier() : super([]) {
+  final bool isApiMode;
+
+  ProductsNotifier(this.isApiMode) : super([]) {
     _loadProducts();
   }
 
   Future<void> _loadProducts() async {
     var products = DatabaseService.getAllProducts();
-    if (products.isEmpty) {
-      products = RealisticData.getProducts();
-      await DatabaseService.saveProducts(products);
-    }
+    // Don't load dummy data - only use server data
     state = products;
   }
 
   Future<void> refresh() async {
-    // Simulate fetching new data from server
-    await Future.delayed(const Duration(seconds: 1));
-    final products = RealisticData.getProducts();
-    await DatabaseService.saveProducts(products);
+    // Reload products from database (no dummy data)
+    await Future.delayed(const Duration(milliseconds: 500));
+    final products = DatabaseService.getAllProducts();
     state = products;
   }
 

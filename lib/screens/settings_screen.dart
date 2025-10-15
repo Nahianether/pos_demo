@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/settings_provider.dart';
+import '../providers/api_pos_provider.dart';
+import '../providers/pos_riverpod_provider.dart';
+import '../services/api_service.dart';
+import '../services/database_service.dart';
 import '../widgets/modern_notification.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -13,6 +17,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _vatController;
   late TextEditingController _discountController;
+  late TextEditingController _apiUrlController;
   bool _isDiscountPercentage = true;
 
   @override
@@ -20,12 +25,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.initState();
     _vatController = TextEditingController();
     _discountController = TextEditingController();
+    _apiUrlController = TextEditingController(text: ApiService.baseUrl);
   }
 
   @override
   void dispose() {
     _vatController.dispose();
     _discountController.dispose();
+    _apiUrlController.dispose();
     super.dispose();
   }
 
@@ -61,6 +68,119 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // API Settings
+              _buildSection(
+                title: 'API Configuration',
+                icon: Icons.cloud,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                      Text(
+                        'API Base URL',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _apiUrlController,
+                              decoration: InputDecoration(
+                                hintText: 'http://localhost:3000/api',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: _updateApiUrl,
+                            child: const Text('Update'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _buildQuickActionChip(
+                            label: 'Localhost',
+                            onPressed: () {
+                              _apiUrlController.text = ApiService.localhost;
+                              _updateApiUrl();
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          _buildQuickActionChip(
+                            label: 'Android Emulator',
+                            onPressed: () {
+                              _apiUrlController.text = ApiService.androidEmulator;
+                              _updateApiUrl();
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Connection Status
+                      FutureBuilder<bool>(
+                        future: ApiService.checkConnection(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Row(
+                              children: [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                                SizedBox(width: 8),
+                                Text('Checking connection...'),
+                              ],
+                            );
+                          }
+
+                          final isConnected = snapshot.data ?? false;
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isConnected
+                                  ? Colors.green.withValues(alpha: 0.1)
+                                  : Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isConnected ? Colors.green : Colors.red,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isConnected ? Icons.check_circle : Icons.error,
+                                  color: isConnected ? Colors.green : Colors.red,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    isConnected
+                                        ? 'API Connected'
+                                        : 'API Disconnected - Check URL and backend status',
+                                    style: TextStyle(
+                                      color: isConnected ? Colors.green : Colors.red,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               // VAT Settings
               _buildSection(
                 title: 'VAT Settings',
@@ -265,6 +385,55 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ],
                 ),
               ),
+
+              const SizedBox(height: 24),
+
+              // Data Management
+              _buildSection(
+                title: 'Data Management',
+                icon: Icons.storage,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Clear all cached data including categories and products. Settings will be preserved.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.orange.shade900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _clearAllData,
+                        icon: const Icon(Icons.delete_sweep),
+                        label: const Text('Clear All Cached Data'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -354,6 +523,85 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
     } else {
       NotificationHelpers.showError(ref, 'Please enter a valid discount value');
+    }
+  }
+
+  void _updateApiUrl() {
+    final url = _apiUrlController.text.trim();
+    if (url.isEmpty) {
+      NotificationHelpers.showError(ref, 'Please enter a valid API URL');
+      return;
+    }
+
+    try {
+      // Validate URL format
+      Uri.parse(url);
+
+      // Update API base URL
+      ref.read(setApiBaseUrlProvider)(url);
+
+      NotificationHelpers.showSuccess(ref, 'API URL updated successfully');
+
+      // Check connection
+      setState(() {});
+    } catch (e) {
+      NotificationHelpers.showError(ref, 'Invalid URL format');
+    }
+  }
+
+  Future<void> _clearAllData() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear All Data?'),
+        content: const Text(
+          'This will remove all cached categories, products, and cart items. '
+          'Your settings will be preserved.\n\n'
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Clear Data'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        // Clear all data from Hive
+        await DatabaseService.clearAllData();
+
+        // Clear the cart provider state
+        ref.read(cartProvider.notifier).clearCart();
+
+        if (mounted) {
+          NotificationHelpers.showSuccess(
+            ref,
+            'All cached data has been cleared successfully. Please restart the app or fetch data from API.',
+          );
+
+          // Pop back to main screen
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          NotificationHelpers.showError(
+            ref,
+            'Failed to clear data: ${e.toString()}',
+          );
+        }
+      }
     }
   }
 }

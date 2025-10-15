@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/pos_riverpod_provider.dart';
+import '../providers/api_pos_provider.dart';
 import '../models/category_hive.dart';
 
 class CategoryGridRiverpod extends ConsumerWidget {
@@ -9,9 +10,11 @@ class CategoryGridRiverpod extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedCategoryId = ref.watch(selectedCategoryProvider);
+
+    // Always use API providers
     final categories = selectedCategoryId == null
-        ? ref.watch(rootCategoriesProvider)
-        : ref.watch(subCategoriesProvider(selectedCategoryId));
+        ? ref.watch(apiRootCategoriesProvider)
+        : ref.watch(apiSubCategoriesProvider(selectedCategoryId));
 
     if (categories.isEmpty) {
       return const Center(
@@ -49,7 +52,9 @@ class _CategoryCardState extends ConsumerState<_CategoryCard> {
 
   @override
   Widget build(BuildContext context) {
-    final color = Color(int.parse('FF${widget.category.color}', radix: 16));
+    // Remove # if present in the color string
+    final colorString = widget.category.color.replaceAll('#', '');
+    final color = Color(int.parse('FF$colorString', radix: 16));
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -117,7 +122,9 @@ class _CategoryCardState extends ConsumerState<_CategoryCard> {
               const SizedBox(height: 4),
               Consumer(
                 builder: (context, ref, _) {
-                  final subCategories = ref.watch(subCategoriesProvider(widget.category.id));
+                  // Always use API providers
+                  final subCategories = ref.watch(apiSubCategoriesProvider(widget.category.id));
+
                   if (subCategories.isNotEmpty) {
                     return Text(
                       '${subCategories.length} subcategories',
@@ -128,7 +135,8 @@ class _CategoryCardState extends ConsumerState<_CategoryCard> {
                     );
                   }
 
-                  final products = ref.watch(productsByCategoryProvider(widget.category.id));
+                  final products = ref.watch(apiProductsByCategoryProvider(widget.category.id));
+
                   return Text(
                     '${products.length} items',
                     style: TextStyle(
