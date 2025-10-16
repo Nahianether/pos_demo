@@ -26,13 +26,14 @@ class ProductHiveAdapter extends TypeAdapter<ProductHive> {
       isAvailable: fields[6] as bool,
       unit: fields[7] as String?,
       lastUpdated: fields[8] as DateTime?,
+      stockQuantity: fields[9] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, ProductHive obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +51,9 @@ class ProductHiveAdapter extends TypeAdapter<ProductHive> {
       ..writeByte(7)
       ..write(obj.unit)
       ..writeByte(8)
-      ..write(obj.lastUpdated);
+      ..write(obj.lastUpdated)
+      ..writeByte(9)
+      ..write(obj.stockQuantity);
   }
 
   @override

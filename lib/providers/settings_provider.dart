@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/settings_hive.dart';
 import '../services/database_service.dart';
 import 'pos_riverpod_provider.dart';
+import 'api_pos_provider.dart';
 
 // Settings Provider
 final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsHive>((ref) {
@@ -94,7 +95,10 @@ class SettingsNotifier extends StateNotifier<SettingsHive> {
 
 // Computed providers for cart calculations with settings
 final cartSubtotalProvider = Provider<double>((ref) {
-  final cartItems = ref.watch(cartProvider);
+  final settings = ref.watch(settingsProvider);
+  final cartItems = settings.isApiMode
+      ? ref.watch(apiCartProvider).valueOrNull ?? []
+      : ref.watch(cartProvider);
   return cartItems.fold(0.0, (sum, item) => sum + item.totalPrice);
 });
 

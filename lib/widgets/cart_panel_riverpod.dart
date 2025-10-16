@@ -279,6 +279,11 @@ class _CartItemTile extends ConsumerWidget {
     final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
     final isDark = ref.watch(isDarkModeProvider);
 
+    // Get the actual product to check stock
+    final products = ref.watch(apiProductsProvider).valueOrNull ?? [];
+    final product = products.where((p) => p.id == cartItem.product.id).firstOrNull;
+    final stockQuantity = product?.stockQuantity ?? 0;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       padding: const EdgeInsets.all(12),
@@ -304,12 +309,29 @@ class _CartItemTile extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      currencyFormat.format(cartItem.product.price),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.getSecondaryTextColor(isDark),
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          currencyFormat.format(cartItem.product.price),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.getSecondaryTextColor(isDark),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '• Stock: $stockQuantity',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: stockQuantity == 0
+                                ? Colors.red
+                                : stockQuantity <= 5
+                                    ? Colors.orange
+                                    : Colors.grey[600],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -365,6 +387,18 @@ class _CartItemTile extends ConsumerWidget {
                       ref,
                       Icons.add,
                       () {
+                        // Check if we can add more
+                        if (cartItem.quantity >= stockQuantity) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Cannot add more. Only $stockQuantity in stock'),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          return;
+                        }
                         // Always use API cart
                         ref.read(apiCartProvider.notifier).updateQuantity(
                               cartItem.product.id,

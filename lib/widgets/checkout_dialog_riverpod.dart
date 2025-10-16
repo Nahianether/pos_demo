@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../providers/pos_riverpod_provider.dart';
+import '../providers/api_pos_provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/modern_notification.dart';
 import '../services/thermal_printer_service.dart';
+import '../services/api_service.dart';
 import '../models/cart_item_hive.dart';
 import '../models/settings_hive.dart';
+import '../models/api_models.dart' as api;
 
 enum PaymentMethod { cash, card, digital }
 
@@ -49,6 +51,9 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
       ),
       child: Container(
         width: 500,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -74,15 +79,25 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
               ],
             ),
             const Divider(height: 24),
-            _buildCustomerNameField(),
-            const SizedBox(height: 16),
-            _buildFriendBillOption(),
-            const SizedBox(height: 16),
-            _buildManualDiscountSection(),
-            const SizedBox(height: 16),
-            _buildPaymentMethodSelector(),
-            const SizedBox(height: 20),
-            _buildOrderSummary(),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildCustomerNameField(),
+                    const SizedBox(height: 16),
+                    _buildFriendBillOption(),
+                    const SizedBox(height: 16),
+                    _buildManualDiscountSection(),
+                    const SizedBox(height: 16),
+                    _buildPaymentMethodSelector(),
+                    const SizedBox(height: 20),
+                    _buildOrderSummary(),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
             _buildCompleteButton(),
           ],
@@ -538,14 +553,30 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
 
   void _completeOrder() async {
     final subtotal = ref.read(cartSubtotalProvider);
-    final cartItems = ref.read(cartProvider);
+    final cartItems = ref.read(apiCartProvider).valueOrNull ?? [];
     final settings = ref.read(settingsProvider);
+    final cartId = ref.read(apiCartIdProvider);
     final customerName = _customerNameController.text.trim().isNotEmpty
         ? _customerNameController.text.trim()
         : null;
 
+    if (cartItems.isEmpty) {
+      if (mounted) {
+        NotificationHelpers.showError(ref, 'Cart is empty');
+      }
+      return;
+    }
+
     // Calculate manual discount
     final manualDiscount = _calculateManualDiscount(subtotal);
+    final vat = ref.read(cartVatProvider);
+    final defaultDiscount = ref.read(cartDiscountProvider);
+
+    // Calculate total with manual discount and friend bill logic
+    double total = settings.calculateTotal(subtotal) - manualDiscount;
+    if (_isFriendBill) {
+      total = total.floorToDouble(); // Always round down for friend bills
+    }
 
     // Store order data for re-printing
     _lastOrderItems = List.from(cartItems);
@@ -556,40 +587,86 @@ class _CheckoutDialogRiverpodState extends ConsumerState<CheckoutDialogRiverpod>
     _lastPaymentMethod = _selectedPaymentMethod.name.toUpperCase();
     _lastManualDiscount = manualDiscount;
 
-    // Calculate total with manual discount and friend bill logic
-    double total = settings.calculateTotal(subtotal) - manualDiscount;
-    if (_isFriendBill) {
-      total = total.floorToDouble(); // Always round down for friend bills
-    }
-
-    // Print receipt
-    try {
-      await ThermalPrinterService().printReceipt(
-        items: cartItems,
-        subtotal: subtotal,
-        settings: settings,
-        customerName: customerName,
-        isFriendBill: _isFriendBill,
-        paymentMethod: _selectedPaymentMethod.name.toUpperCase(),
-        manualDiscount: manualDiscount,
-      );
-    } catch (e) {
-      // If printing fails, show error but still complete the order
-      if (mounted) {
-        NotificationHelpers.showError(ref, 'Failed to print receipt: $e');
-      }
-    }
-
-    // Clear the cart
-    await ref.read(cartProvider.notifier).clearCart();
-
+    // Show loading indicator
     if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
 
-    Navigator.pop(context);
+    try {
+      // Convert payment method
+      final paymentMethod = _selectedPaymentMethod == PaymentMethod.cash
+          ? api.PaymentMethod.Cash
+          : _selectedPaymentMethod == PaymentMethod.card
+              ? api.PaymentMethod.Card
+              : api.PaymentMethod.DigitalWallet;
 
-    // Show success notification instead of dialog
-    NotificationHelpers.showCheckoutSuccess(ref);
-    _showSuccessDialog(total, cartItems.length);
+      // Create sale items from cart
+      final saleItems = cartItems.map((item) => api.ApiSaleItem(
+        productId: item.product.id,
+        quantity: item.quantity,
+      )).toList();
+
+      // Create sale request
+      final saleRequest = api.CreateSaleRequest(
+        customerName: customerName,
+        cartId: cartId,
+        items: saleItems,
+        discount: defaultDiscount + manualDiscount,
+        tax: vat,
+        paymentMethod: paymentMethod,
+        paymentReceived: total,
+        notes: _isFriendBill ? 'Friend Bill - Rounded Down' : null,
+      );
+
+      // Complete sale via API
+      await ApiService.completeSale(saleRequest);
+
+      // Print receipt
+      try {
+        await ThermalPrinterService().printReceipt(
+          items: cartItems,
+          subtotal: subtotal,
+          settings: settings,
+          customerName: customerName,
+          isFriendBill: _isFriendBill,
+          paymentMethod: _selectedPaymentMethod.name.toUpperCase(),
+          manualDiscount: manualDiscount,
+        );
+      } catch (e) {
+        // If printing fails, show error but still complete the order
+        print('Failed to print receipt: $e');
+      }
+
+      // Clear the cart
+      await ref.read(apiCartProvider.notifier).clearCart();
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.pop(context);
+      // Close checkout dialog
+      Navigator.pop(context);
+
+      // Show success notification and dialog
+      NotificationHelpers.showCheckoutSuccess(ref);
+      _showSuccessDialog(total, cartItems.length);
+
+      // Refresh products to get updated stock quantities
+      await ref.read(apiProductsProvider.notifier).refresh();
+    } catch (e) {
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      NotificationHelpers.showError(ref, 'Failed to complete sale: $e');
+      print('Error completing sale: $e');
+    }
   }
 
   void _showSuccessDialog(double total, int itemCount) {

@@ -54,6 +54,7 @@ class ApiProductsNotifier extends StateNotifier<AsyncValue<List<ProductHive>>> {
       isAvailable: api.isActive,
       unit: null, // Not in API model
       lastUpdated: api.updatedAt,
+      stockQuantity: api.stockQuantity,
     )).toList();
   }
 
@@ -174,24 +175,39 @@ class ApiCartNotifier extends StateNotifier<AsyncValue<List<CartItemHive>>> {
 
   Future<void> addToCart(ProductHive product) async {
     try {
+      print('🛒 Adding to cart: ${product.name} (ID: ${product.id})');
+
       // Get or create cart ID
       String? cartId = ref.read(apiCartIdProvider);
+      print('🛒 Current cart ID: $cartId');
+
       if (cartId == null) {
+        print('🛒 Creating new cart...');
         final cart = await ApiService.createCart();
         cartId = cart.id;
         ref.read(apiCartIdProvider.notifier).state = cartId;
+        print('🛒 New cart created: $cartId');
       }
 
       // Add item to cart
+      print('🛒 Adding item to cart via API...');
       final cartWithItems = await ApiService.addToCart(
         cartId: cartId,
         productId: product.id,
         quantity: 1,
       );
 
+      print('🛒 API Response: ${cartWithItems.items.length} items in cart');
+      for (var item in cartWithItems.items) {
+        print('   - ${item.productName} x${item.quantity}');
+      }
+
       // Convert to CartItemHive
-      state = AsyncValue.data(_convertApiCartItems(cartWithItems.items));
+      final cartItems = _convertApiCartItems(cartWithItems.items);
+      print('🛒 Setting cart state with ${cartItems.length} items');
+      state = AsyncValue.data(cartItems);
     } catch (e, stack) {
+      print('❌ Error adding to cart: $e');
       state = AsyncValue.error(e, stack);
     }
   }
@@ -266,6 +282,7 @@ class ApiCartNotifier extends StateNotifier<AsyncValue<List<CartItemHive>>> {
         price: api.unitPrice,
         isAvailable: true,
         lastUpdated: DateTime.now(),
+        stockQuantity: 0, // Stock info not in cart item response
       ),
       quantity: api.quantity,
     )).toList();

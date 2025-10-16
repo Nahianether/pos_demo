@@ -31,6 +31,9 @@ class ProductHive extends HiveObject {
   @HiveField(8)
   DateTime lastUpdated;
 
+  @HiveField(9)
+  int stockQuantity;
+
   ProductHive({
     required this.id,
     required this.name,
@@ -41,6 +44,7 @@ class ProductHive extends HiveObject {
     this.isAvailable = true,
     this.unit,
     DateTime? lastUpdated,
+    this.stockQuantity = 0,
   }) : lastUpdated = lastUpdated ?? DateTime.now();
 
   ProductHive copyWith({
@@ -53,6 +57,7 @@ class ProductHive extends HiveObject {
     bool? isAvailable,
     String? unit,
     DateTime? lastUpdated,
+    int? stockQuantity,
   }) {
     return ProductHive(
       id: id ?? this.id,
@@ -64,6 +69,7 @@ class ProductHive extends HiveObject {
       isAvailable: isAvailable ?? this.isAvailable,
       unit: unit ?? this.unit,
       lastUpdated: lastUpdated ?? this.lastUpdated,
+      stockQuantity: stockQuantity ?? this.stockQuantity,
     );
   }
 }

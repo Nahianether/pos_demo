@@ -77,8 +77,27 @@ class _ProductCardState extends ConsumerState<_ProductCard> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: InkWell(
-        onTap: () async {
-          // Always use API cart
+        onTap: widget.product.stockQuantity > 0 ? () async {
+          // Check current quantity in cart
+          final cartItems = ref.read(apiCartProvider).valueOrNull ?? [];
+          final existingItem = cartItems.where((item) => item.product.id == widget.product.id).firstOrNull;
+          final currentQuantity = existingItem?.quantity ?? 0;
+
+          if (currentQuantity >= widget.product.stockQuantity) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Cannot add more. Only ${widget.product.stockQuantity} in stock'),
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+            return;
+          }
+
+          // Add to cart
           await ref.read(apiCartProvider.notifier).addToCart(widget.product);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -90,7 +109,7 @@ class _ProductCardState extends ConsumerState<_ProductCard> {
               ),
             );
           }
-        },
+        } : null,
         borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -120,65 +139,103 @@ class _ProductCardState extends ConsumerState<_ProductCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Product Image
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-                child: widget.product.imageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: widget.product.imageUrl!,
-                        height: 110,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          height: 110,
-                          color: Colors.grey[200],
-                          child: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          height: 110,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                const Color(0xFF3498DB).withValues(alpha: 0.1),
-                                const Color(0xFF9B59B6).withValues(alpha: 0.1),
-                              ],
+              // Product Image with Stock Badge
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                    child: widget.product.imageUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: widget.product.imageUrl!,
+                            height: 110,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              height: 110,
+                              color: Colors.grey[200],
+                              child: const Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              height: 110,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    const Color(0xFF3498DB).withValues(alpha: 0.1),
+                                    const Color(0xFF9B59B6).withValues(alpha: 0.1),
+                                  ],
+                                ),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  Icons.restaurant,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                              ),
+                            ),
+                          )
+                        : Container(
+                            height: 110,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  const Color(0xFF3498DB).withValues(alpha: 0.1),
+                                  const Color(0xFF9B59B6).withValues(alpha: 0.1),
+                                ],
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.restaurant,
+                                size: 40,
+                                color: Colors.grey[400],
+                              ),
                             ),
                           ),
-                          child: Center(
-                            child: Icon(
-                              Icons.restaurant,
-                              size: 48,
-                              color: Colors.grey[400],
-                            ),
-                          ),
-                        ),
-                      )
-                    : Container(
-                        height: 110,
+                  ),
+                  // Stock Badge Overlay
+                  if (widget.product.stockQuantity <= 10)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              const Color(0xFF3498DB).withValues(alpha: 0.1),
-                              const Color(0xFF9B59B6).withValues(alpha: 0.1),
-                            ],
-                          ),
+                          color: widget.product.stockQuantity == 0
+                              ? Colors.red
+                              : widget.product.stockQuantity <= 5
+                                  ? Colors.orange
+                                  : Colors.amber,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        child: Center(
-                          child: Icon(
-                            Icons.restaurant,
-                            size: 40,
-                            color: Colors.grey[400],
+                        child: Text(
+                          widget.product.stockQuantity == 0
+                              ? 'Out of Stock'
+                              : 'Only ${widget.product.stockQuantity} left',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
+                    ),
+                ],
               ),
 
               // Product Info
@@ -233,16 +290,19 @@ class _ProductCardState extends ConsumerState<_ProductCard> {
                                     color: Color(0xFF27AE60),
                                   ),
                                 ),
-                                if (widget.product.unit != null)
-                                  Text(
-                                    widget.product.unit!,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.grey[500],
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Stock: ${widget.product.stockQuantity}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: widget.product.stockQuantity == 0
+                                        ? Colors.red
+                                        : widget.product.stockQuantity <= 5
+                                            ? Colors.orange
+                                            : Colors.grey[600],
+                                    fontWeight: FontWeight.w600,
                                   ),
+                                ),
                               ],
                             ),
                           ),
